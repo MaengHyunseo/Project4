@@ -54,9 +54,7 @@ def draw_lives(surf, x, y, lives, img):
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.size_W = 30
-        self.size_H = 22
-        self.image = pygame.transform.scale(L_player_img, (self.size_W, self.size_W))
+        self.image = pygame.transform.scale(L_player_img, (30, 22))
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.facing = 'left'
@@ -81,12 +79,12 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_LEFT]:
             self.speedx = -6
             if self.facing == 'right':
-                self.image = pygame.transform.scale(L_player_img, (self.size_W, self.size_H))
+                self.image = pygame.transform.scale(L_player_img, (self.rect.width, self.rect.height))
             self.facing = 'left'
         if keys[pygame.K_RIGHT]:
             self.speedx = 6
             if self.facing == 'left':
-                self.image = pygame.transform.scale(R_player_img, (self.size_W, self.size_H))
+                self.image = pygame.transform.scale(R_player_img, (self.rect.width, self.rect.height))
             self.facing = 'right'
         if keys[pygame.K_UP]:
             self.speedy = -6
@@ -96,14 +94,14 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += self.speedx
         self.rect.y += self.speedy
         
-        if (self.rect.x + self.size_W) > WIDTH:
-            self.rect.x = WIDTH - self.size_W
-        if self.rect.x < 0:
-            self.rect.x = 0
-        if self.rect.y < 0:
-            self.rect.y = 0
-        if (self.rect.y + self.size_H) > HEIGHT:
-            self.rect.y = HEIGHT - self.size_H
+        if self.rect.right > (WIDTH + self.rect.width / 2):
+            self.rect.right = WIDTH + self.rect.width / 2
+        if self.rect.x < -self.rect.width / 2:
+            self.rect.x = -self.rect.width / 2
+        if self.rect.y < -self.rect.height / 2:
+            self.rect.y = -self.rect.height / 2
+        if self.rect.bottom > (HEIGHT + self.rect.height / 2):
+            self.rect.bottom = HEIGHT + self.rect.height / 2
     
     def hide(self):
         # hide the player temporarily
@@ -117,19 +115,25 @@ class Fish(pygame.sprite.Sprite):
         self.image = random.choice(fish_images)
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
-        self.rect.x = random.randrange(WIDTH, WIDTH + 80)
         self.rect.bottom = random.randrange(HEIGHT - self.rect.height)
         self.speedy = random.randrange(-2, 2)
-        self.speedx = random.randrange(-5, -1)
-        self.last_update = pygame.time.get_ticks()
+        self.speedx = random.randrange(-5, 5)
+
+        if self.speedx < 0:
+            self.rect.x = random.randrange(WIDTH + 10, WIDTH + 80)
+        elif self.speedx > 0:
+            self.image = pygame.transform.flip(self.image, True, False)
+            self.rect.x = random.randrange(-80, -10)
+        else:
+            self.speedx = random.randrange(-5, -1)
+            self.rect.x = random.randrange(WIDTH, WIDTH + 80)
 
     def update(self):
         self.rect.x += self.speedx
         self.rect.y += self.speedy
-        if self.rect.top > HEIGHT + 10 or self.rect.left < -100 or self.rect.right > WIDTH + 100:
-            self.rect.x = random.randrange(WIDTH, WIDTH + 80)
-            self.rect.y = random.randrange(HEIGHT - self.rect.height)
-            self.speedx = random.randrange(-5, -1)
+        if self.rect.bottom < -10 or self.rect.top > HEIGHT + 10 or self.rect.right < -10 or self.rect.left > WIDTH + 10:
+            self.kill()
+            newfish()
 
 def main():
     # initialize pygame and create window
@@ -171,7 +175,7 @@ def main():
             game_over = False
             player = Player()
             all_sprites.add(player)
-            while len(fishes) < 15:
+            for i in range(8):
                 newfish()
             score = 0
 
@@ -189,10 +193,10 @@ def main():
         # check if the player has collided with any fishes
         hits = pygame.sprite.spritecollide(player, fishes, True, pygame.sprite.collide_rect_ratio(0.8))
         for hit in hits:
-            if player.size_W > hit.rect.width:
+            if player.rect.width > hit.rect.width:
                 eating_sound.play()
-                player.size_W += 5
-                player.size_H += 5
+                player.rect.width += 5
+                player.rect.height += 5
                 score += 50
                 newfish()
             else:
@@ -200,9 +204,11 @@ def main():
                 player.hide()
                 player.lives -= 1
 
-        # if the player died and the explosion has finished playing
+        # if the player died
         if player.lives == 0:
             player.kill()
+            for fish in fishes:
+                fish.kill()
             game_over = True
 
         # Draw / render
