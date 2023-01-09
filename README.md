@@ -92,12 +92,11 @@ The enemy fishes should not pop out of the middle of the screen. Therefore, I se
 ```
 I wanted fished to move by x direction mainly, so set the speedx larger than speedy. 
 ```python
-if self.rect.top > HEIGHT + 10 or self.rect.left < -100 or self.rect.right > WIDTH + 100:
-    self.rect.x = random.randrange(WIDTH, WIDTH + 80)
-    self.rect.y = random.randrange(HEIGHT - self.rect.height)
-    self.speedx = random.randrange(-5, -1)
+        if self.rect.bottom < -10 or self.rect.top > HEIGHT + 10 or self.rect.right < -10 or self.rect.left > WIDTH + 10:
+            self.kill()
+            newfish()
 ```
-It respawns the fishes when they goes offscreen.
+If the fish goes offscreen, I just delete it and respawn new fish.
 
 ## Collision
 I made collision detection by AABB(collide_rect) because the fishes are almost rectangle shaped.  If player collide with smaller fish, the eating sound plays, grows up and gets 50 scores. If player collide with bigger fish, the die sound plays, gets invisible  and loses a live point.
