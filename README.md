@@ -10,9 +10,7 @@ The player controls a small fish by arrow keys to move up, down, left, and right
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.size_W = 30
-        self.size_H = 22
-        self.image = pygame.transform.scale(L_player_img, (self.size_W, self.size_W))
+        self.image = pygame.transform.scale(L_player_img, (30, 22))
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.facing = 'left'
@@ -28,63 +26,70 @@ I’ve chosen a size of 30x22 for player and set the transparent color as BLACK 
 
 1-2. Movement and control
 ```python
-def update(self):
-    if self.hidden and pygame.time.get_ticks() - self.hide_timer > 1000:
-        self.hidden = False
-        self.rect.centerx = WIDTH / 2
-        self.rect.centery = HEIGHT / 2
+    def update(self):
+        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 1000:
+            self.hidden = False
+            self.rect.centerx = WIDTH / 2
+            self.rect.centery = HEIGHT / 2
 ```
 It makes player reappear one second after death.
 ```python
-    self.speedx = 0
-    self.speedy = 0
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
-        self.speedx = -6
-        if self.facing == 'right':
-            self.image = pygame.transform.scale(L_player_img, (self.size_W, self.size_H))
-        self.facing = 'left'
-    if keys[pygame.K_RIGHT]:
-        self.speedx = 6
-        if self.facing == 'left':
-            self.image = pygame.transform.scale(R_player_img, (self.size_W, self.size_H))
-        self.facing = 'right'
-    if keys[pygame.K_UP]:
-        self.speedy = -6
-    if keys[pygame.K_DOWN]:
-        self.speedy = 6
-```
-When player press arrow keys, the character moves according to the key. ‘self.speedx = 0 / self.speedy=0’ makes the character stop when keys are UP.
-```python
-    self.rect.x += self.speedx
-    self.rect.y += self.speedy
+        self.speedx = 0
+        self.speedy = 0
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.speedx = -6
+            if self.facing == 'right':
+                self.image = pygame.transform.scale(L_player_img, (self.rect.width, self.rect.height))
+            self.facing = 'left'
+        if keys[pygame.K_RIGHT]:
+            self.speedx = 6
+            if self.facing == 'left':
+                self.image = pygame.transform.scale(R_player_img, (self.rect.width, self.rect.height))
+            self.facing = 'right'
+        if keys[pygame.K_UP]:
+            self.speedy = -6
+        if keys[pygame.K_DOWN]:
+            self.speedy = 6
 
-    if (self.rect.x + self.size_W) > WIDTH:
-        self.rect.x = WIDTH - self.size_W
-    if self.rect.x < 0:
-        self.rect.x = 0
-    if self.rect.y < 0:
-        self.rect.y = 0
-    if (self.rect.y + self.size_H) > HEIGHT:
-        self.rect.y = HEIGHT - self.size_H
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
 ```
-It allows the player to stay inside the game window.
+When player press arrow keys, the sprite moves and changes its facing direction and scale according to the key. ‘self.speedx = 0 / self.speedy=0’ makes the character stop when keys are UP.
+```python
+        if self.rect.right > (WIDTH + self.rect.width / 2):
+            self.rect.right = WIDTH + self.rect.width / 2
+        if self.rect.x < -self.rect.width / 2:
+            self.rect.x = -self.rect.width / 2
+        if self.rect.y < -self.rect.height / 2:
+            self.rect.y = -self.rect.height / 2
+        if self.rect.bottom > (HEIGHT + self.rect.height / 2):
+            self.rect.bottom = HEIGHT + self.rect.height / 2
+```
+It allows the player to stay inside the game window. (add)I changed the code so half of the player sprite could go offscreen. This is because there was a problem that there was not enough space to avoid other fish when the size of the player sprite increased.
 
 ## Enemy Sprites
 ```python
 class Fish(pygame.sprite.Sprite):
     def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
+         pygame.sprite.Sprite.__init__(self)
         self.image = random.choice(fish_images)
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
-        self.rect.x = random.randrange(WIDTH, WIDTH + 80)
         self.rect.bottom = random.randrange(HEIGHT - self.rect.height)
         self.speedy = random.randrange(-2, 2)
-        self.speedx = random.randrange(-5, -1)
-        self.last_update = pygame.time.get_ticks()
+        self.speedx = random.randrange(-5, 5)
+
+        if self.speedx < 0:
+            self.rect.x = random.randrange(WIDTH + 10, WIDTH + 80)
+        elif self.speedx > 0:
+            self.image = pygame.transform.flip(self.image, True, False)
+            self.rect.x = random.randrange(-80, -10)
+        else:
+            self.speedx = random.randrange(-5, -1)
+            self.rect.x = random.randrange(WIDTH, WIDTH + 80)
 ```
-The enemy fishes should not pop out of the middle of the screen. Therefore, I set randrange from window width to width+80, so fishes can appear from outside of the game window.
+First, a random value between -5 and 5 was received as speedx, and if the value was negative number(moving from right to left), the sprite would appear on the right side facing left, and if the value was positive number(moving from left to right), it would appear on the left side facing right. The enemy fishes should not pop out of the middle of the screen, so I set the coordinates should be outside offscreen.
 ```python
     def update(self):
         self.rect.x += self.speedx
@@ -99,4 +104,18 @@ I wanted fished to move by x direction mainly, so set the speedx larger than spe
 If the fish goes offscreen, I just delete it and respawn new fish.
 
 ## Collision
-I made collision detection by AABB(collide_rect) because the fishes are almost rectangle shaped.  If player collide with smaller fish, the eating sound plays, grows up and gets 50 scores. If player collide with bigger fish, the die sound plays, gets invisible  and loses a live point.
+```python
+hits = pygame.sprite.spritecollide(player, fishes, True, pygame.sprite.collide_rect_ratio(0.8))
+for hit in hits:
+    if player.rect.width > hit.rect.width:
+        eating_sound.play()
+        player.rect.width += 5
+        player.rect.height += 5
+        score += 50
+        newfish()
+    else:
+        player_die_sound.play()
+        player.hide()
+        player.lives -= 1
+```
+I made collision detection by AABB(collide_rect) because the fishes are almost rectangle shaped. If player collide with smaller fish, the eating sound plays, grows up and gets 50 scores. If player collide with bigger fish, the die sound plays, gets invisible  and loses a live point.
