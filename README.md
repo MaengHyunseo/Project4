@@ -39,13 +39,11 @@ It makes player reappear one second after death.
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
             self.speedx = -6
-            if self.facing == 'right':
-                self.image = pygame.transform.scale(L_player_img, (self.rect.width, self.rect.height))
+            self.image = pygame.transform.scale(L_player_img, (self.rect.width, self.rect.height))
             self.facing = 'left'
         if keys[pygame.K_RIGHT]:
             self.speedx = 6
-            if self.facing == 'left':
-                self.image = pygame.transform.scale(R_player_img, (self.rect.width, self.rect.height))
+            self.image = pygame.transform.scale(R_player_img, (self.rect.width, self.rect.height))
             self.facing = 'right'
         if keys[pygame.K_UP]:
             self.speedy = -6
